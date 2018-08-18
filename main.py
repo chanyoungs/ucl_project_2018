@@ -12,12 +12,15 @@ import tensorflow as tf
 import random
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
-# from scipy.misc import imsave
-
 import sys
+
+############### Editable ##################
+channels = 3 # Colour vs Greyscale
+
+###########################################
+
 input_name = sys.argv[1]
 model_name = sys.argv[2]
-channels = 3 # Colour vs Greyscale
 
 path = os.path.join('outputs', model_name)
 
@@ -208,7 +211,6 @@ def plot_figures(sess, model, images, manager, figs_data):
     batch_xs = images_total
     z_mean_total, z_log_sigma_sq = model.transform(sess, batch_xs)
     z_mean_total_var = np.var(z_mean_total, axis=0)
-    no_latents = 8
     
     # print('Loading metric data...')
     images_dis = np.load('./data/{0}/Metric_data.npy'.format(input_name))
@@ -216,6 +218,8 @@ def plot_figures(sess, model, images, manager, figs_data):
     images_dis = images_dis.reshape(images_dis.shape[0], images_dis.shape[1], -1)
 
     latents_gt = np.load('./data/{0}/Metric_gt.npy'.format(input_name))
+    
+    no_latents = int(np.max(latents_gt) + 1) # Number of original latents in the
     
     votes = np.zeros((10, no_latents))
     # print('Counting votes...')
@@ -225,7 +229,7 @@ def plot_figures(sess, model, images, manager, figs_data):
         normalised = np.divide(z_mean, z_mean_total_var)
         normalised_var = np.var(normalised, axis=0)
         argmin = np.argmin(normalised_var)
-        votes[argmin, latents_gt[n]] += 1
+        votes[argmin, int(latents_gt[n])] += 1
         
     # print('Calculating accuracy...')
     dis_met = 0
