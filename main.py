@@ -106,9 +106,9 @@ def train(sess, model, manager, saver):
         figs_data['losses_l'].append(latent_loss)
         
         # Image reconstruction check & disentanglement check
-        figs_data = plot_figures(sess, model, reconstruct_check_images, manager, figs_data)
+        figs_data, dis_met = plot_figures(sess, model, reconstruct_check_images, manager, figs_data)
         
-        print("Epoch: {0} Loss_R: {1} Loss_L: {2}".format(figs_data['epoch'], reconstr_loss, latent_loss))
+        print("Epoch: {0} Loss_R: {1} Loss_L: {2}, Dis_Met: {3}".format(figs_data['epoch'], reconstr_loss, latent_loss, dis_met))
         
         # Save checkpoint
         saver.save(sess, flags.checkpoint_dir + '/' + 'checkpoint', global_step = figs_data['epoch'])
@@ -210,30 +210,32 @@ def plot_figures(sess, model, images, manager, figs_data):
     z_mean_total_var = np.var(z_mean_total, axis=0)
     no_latents = 8
     
-    print('Loading metric data...')
-    images_dis = np.load('./data/{0}/disentanglement_metric_data.npy'.format(input_name))
-    print('Data loaded!')
+    # print('Loading metric data...')
+    images_dis = np.load('./data/{0}/Metric_data.npy'.format(input_name))
+    # print('Data loaded!')
     images_dis = images_dis.reshape(images_dis.shape[0], images_dis.shape[1], -1)
+
+    latents_gt = np.load('./data/{0}/Metric_gt.npy'.format(input_name))
     
     votes = np.zeros((10, no_latents))
-    print('Counting votes...')
+    # print('Counting votes...')
     for n in range(images_dis.shape[0]):
         batch_xs = images_dis[n]
         z_mean, z_log_sigma_sq = model.transform(sess, batch_xs)
         normalised = np.divide(z_mean, z_mean_total_var)
         normalised_var = np.var(normalised, axis=0)
         argmin = np.argmin(normalised_var)
-        votes[argmin, n % no_latents] += 1
+        votes[argmin, latents_gt[n]] += 1
         
-    print('Calculating accuracy...')
-    accuracy = 0
+    # print('Calculating accuracy...')
+    dis_met = 0
     for n in range(10):
-        accuracy += np.max(votes[n])
+        dis_met += np.max(votes[n])
         
-    accuracy *= 100 / images_dis.shape[0]
-    print('Accuracy: {0}%'.format(accuracy))
+    dis_met *= 100 / images_dis.shape[0]
+    # print('Accuracy: {0}%'.format(accuracy))
     
-    figs_data['disentangled_metric'].append(accuracy)
+    figs_data['disentangled_metric'].append(dis_met)
     
     plt.subplot(224)
     plt.plot(range(len(figs_data['disentangled_metric'])), figs_data['disentangled_metric'])
@@ -242,7 +244,7 @@ def plot_figures(sess, model, images, manager, figs_data):
     fig.savefig('./outputs/{0}/figures/Graphs/Graphs{1}'.format(model_name, epoch))
     plt.close(fig)
     
-    return figs_data
+    return figs_data, dis_met
 
 def load_checkpoints(sess):
     saver = tf.train.Saver()
