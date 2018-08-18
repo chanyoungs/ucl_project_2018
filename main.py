@@ -202,7 +202,7 @@ def plot_figures(sess, model, images, manager, figs_data):
     
     # Latent loss
     plt.subplot(223)
-    plt.plot(range(len(figs_data['losses_r'])), figs_data['losses_r'])
+    plt.plot(range(len(figs_data['losses_l'])), figs_data['losses_l'])
     plt.title('Latent loss Epoch: {0}'.format(epoch))
     
     # Disentanglement metric
