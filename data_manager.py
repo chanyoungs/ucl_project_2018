@@ -13,6 +13,7 @@ class DataManager(object):
     self.imgs = np.load('data/{0}/Data.npy'.format(self.input_name))
 
     self.n_samples = self.imgs.shape[0]
+    self.n_channels = 1 if len(self.imgs.shape) == 3 else 3
     
   @property
   def sample_size(self):
@@ -22,9 +23,9 @@ class DataManager(object):
     images = []
     # print(indices, 'after')
     for index in indices:
-      if len(self.imgs.shape) == 2: # BW images
+      if self.n_channels == 1: # BW images
         img = self.imgs[index].reshape(64*64)
-      else: # Colour images
+      elif self.n_channels == 3: # Colour images
         img = self.imgs[index].reshape(64*64*3)
       images.append(img)
     return images

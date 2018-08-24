@@ -12,10 +12,12 @@ import tensorflow as tf
 import random
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
+from scipy.stats import norm
 import sys
 
 ############### Editable ##################
-channels = 3 # Colour vs Greyscale
+model_type = 'beta_vae'
+# model_type = 'beta_vae'
 
 ###########################################
 
@@ -43,17 +45,23 @@ else:
     print('Path already exists')
 
 
-from model import VAE
+from model import MODEL
 from data_manager import DataManager
-# from data_manager_multiple import DataManager
 
 tf.app.flags.DEFINE_integer("epoch_size", 20000, "epoch size")
 tf.app.flags.DEFINE_integer("batch_size", 64, "batch size")
-tf.app.flags.DEFINE_float("gamma", 100.0, "gamma param for latent loss")
-tf.app.flags.DEFINE_float("capacity_limit", 20.0,
-                          "encoding capacity limit param for latent loss")
-tf.app.flags.DEFINE_integer("capacity_change_duration", 100000,
-                            "encoding capacity change duration")
+if model_type == 'vae':
+    tf.app.flags.DEFINE_float("gamma", 1.0, "gamma param for latent loss")
+    tf.app.flags.DEFINE_float("capacity_limit", 0.0,
+                              "encoding capacity limit param for latent loss")
+    tf.app.flags.DEFINE_integer("capacity_change_duration", 9999999999999,
+                                "encoding capacity change duration")
+elif model_type == 'beta_vae':
+    tf.app.flags.DEFINE_float("gamma", 100.0, "gamma param for latent loss")
+    tf.app.flags.DEFINE_float("capacity_limit", 20.0,
+                              "encoding capacity limit param for latent loss")
+    tf.app.flags.DEFINE_integer("capacity_change_duration", 100000,
+                                "encoding capacity change duration")
 tf.app.flags.DEFINE_float("learning_rate", 5e-4, "learning rate")
 tf.app.flags.DEFINE_string("checkpoint_dir", "outputs/{0}/checkpoints".format(model_name), "checkpoint directory")
 # tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints", "checkpoint directory")
@@ -77,16 +85,22 @@ def train(sess, model, manager, saver):
         figs_data = {
             'epoch' : 0,
             'step' : 0,
-            'latents' : [],
+            'latent_vars' : [],
+            'latent_means' : [],
             'losses_r' : [], # Reconstruction losses over epochs for plot
             'losses_l' : [], # Latent losses over epochs for plot
+            'losses_l_w' : [], # Weighted latent losses over epochs for plot
+            'losses_t' : [], # Final losses over epochs for plot
             'disentangled_metric' : []
         }
     else:
         figs_data = np.load(os.path.join(path, 'figs_data', 'figs_data.npy'))
+        figs_data = figs_data.item()
     
     # Training cycle
     while figs_data['epoch'] < flags.epoch_size:
+        figs_data['epoch'] += 1
+
         # Shuffle image indices
         random.shuffle(indices)
         
@@ -99,7 +113,7 @@ def train(sess, model, manager, saver):
             batch_xs = manager.get_images(batch_indices)
             
             # Fit training using batch data
-            reconstr_loss, latent_loss, summary_str = model.partial_fit(sess, batch_xs, figs_data['step'])
+            reconstr_loss, latent_loss, latent_loss_weighted, total_loss, summary_str = model.partial_fit(sess, batch_xs, figs_data['step'])
             
             figs_data['step'] += 1
             
@@ -107,6 +121,8 @@ def train(sess, model, manager, saver):
         
         figs_data['losses_r'].append(reconstr_loss)
         figs_data['losses_l'].append(latent_loss)
+        figs_data['losses_l_w'].append(latent_loss_weighted)
+        figs_data['losses_t'].append(total_loss)
         
         # Image reconstruction check & disentanglement check
         figs_data, dis_met = plot_figures(sess, model, reconstruct_check_images, manager, figs_data)
@@ -117,8 +133,6 @@ def train(sess, model, manager, saver):
         saver.save(sess, flags.checkpoint_dir + '/' + 'checkpoint', global_step = figs_data['epoch'])
 
         np.save(os.path.join(path, 'figs_data', 'figs_data.npy'), figs_data)
-
-        figs_data['epoch'] += 1
 
 def plot_figures(sess, model, images, manager, figs_data):
     epoch = figs_data['epoch']
@@ -154,14 +168,17 @@ def plot_figures(sess, model, images, manager, figs_data):
     z_mean, z_log_sigma_sq = model.transform(sess, batch_xs)
     z_sigma_sq = np.exp(z_log_sigma_sq)[0]
     
-    figs_data['latents'].append(z_sigma_sq.reshape(10, 1))
-    latent_graph = np.concatenate(figs_data['latents'], axis=1)
+    figs_data['latent_vars'].append(z_sigma_sq.reshape(10, 1))
+    figs_data['latent_means'].append(z_mean.reshape(10, 1))
+    
+    latent_vars_graph = np.concatenate(figs_data['latent_vars'], axis=1)
+    latent_means_graph = np.concatenate(figs_data['latent_means'], axis=1)
     
     # Save disentangled images
     z_m = z_mean[0]
     n_z = 10
     
-    ind = np.argsort(np.array(figs_data['latents'][-1]).flatten())
+    ind = np.argsort(np.array(figs_data['latent_vars'][-1]).flatten())
     ind_inv = np.argsort(ind)
   
     fig = plt.figure(figsize=(10,10), facecolor='grey')
@@ -186,25 +203,39 @@ def plot_figures(sess, model, images, manager, figs_data):
     plt.close(fig)
   
     ############### Graphs
+    fig = plt.figure(figsize=(20, 20))
 
-    # Latent space
-    fig = plt.figure(figsize=(20, 10))
-    plt.subplot(221)
+    # Latent variances
+    plt.subplot(321)
     for v in range(n_z):
-        plt.plot(range(latent_graph.shape[1]), latent_graph[ind[v],:], label=v+1)
+        plt.plot(range(latent_vars_graph.shape[1]), latent_vars_graph[ind[v],:], label=v+1)
     plt.legend()
-    plt.title('Disentanglement over latent variables Epoch: {0}'.format(epoch))
-    
-    # Reconstruction loss
-    plt.subplot(222)
-    plt.plot(range(len(figs_data['losses_r'])), figs_data['losses_r'])
-    plt.title('Reconstruction loss Epoch: {0}'.format(epoch))
-    
-    # Latent loss
-    plt.subplot(223)
-    plt.plot(range(len(figs_data['losses_l'])), figs_data['losses_l'])
-    plt.title('Latent loss Epoch: {0}'.format(epoch))
-    
+    plt.title('Latent variances Epoch: {0}'.format(epoch))
+
+    # Latent means
+    plt.subplot(322)
+    for v in range(n_z):
+        plt.plot(range(latent_means_graph.shape[1]), latent_means_graph[ind[v],:], label=v+1)
+    plt.legend()
+    plt.title('Latent means Epoch: {0}'.format(epoch))
+
+    # Latent Gaussians
+    plt.subplot(323)
+    x = np.linspace(np.min(latent_means_graph) - 3 * np.max(latent_vars_graph), np.max(latent_means_graph) + 3 * np.max(latent_vars_graph), 300)
+    for v in range(n_z):
+        plt.plot(x, norm.pdf(x, latent_means_graph[ind[v],-1], np.sqrt(latent_vars_graph[ind[v],-1])), label=v+1)
+    plt.legend()
+    plt.title('Latent Gaussians at Epoch: {0}'.format(epoch))
+
+    # Losses
+    plt.subplot(324)
+    plt.plot(range(len(figs_data['losses_r'])), figs_data['losses_r'], label='Reconstruction')
+    plt.plot(range(len(figs_data['losses_l'])), figs_data['losses_l'], label='Latent')
+    plt.plot(range(len(figs_data['losses_l_w'])), figs_data['losses_l_w'], label='Weighted latent')
+    plt.plot(range(len(figs_data['losses_t'])), figs_data['losses_t'], label='Total')
+    plt.legend()
+    plt.title('Losses Epoch: {0}'.format(epoch))
+        
     # Disentanglement metric
     images_total = manager.imgs[:10000]
     images_total = images_total.reshape(images_total.shape[0], -1)
@@ -241,7 +272,7 @@ def plot_figures(sess, model, images, manager, figs_data):
     
     figs_data['disentangled_metric'].append(dis_met)
     
-    plt.subplot(224)
+    plt.subplot(325)
     plt.plot(range(len(figs_data['disentangled_metric'])), figs_data['disentangled_metric'])
     plt.title('Disentanglement Metric Epoch: {0}'.format(epoch))
     
@@ -268,11 +299,13 @@ def main(argv):
     
     sess = tf.Session()
     
-    model = VAE(gamma=flags.gamma,
-                capacity_limit=flags.capacity_limit,
-                capacity_change_duration=flags.capacity_change_duration,
-                learning_rate=flags.learning_rate,
-                channels=channels)
+    model = MODEL(model_type=model_type,
+                  gamma=flags.gamma,
+                  capacity_limit=flags.capacity_limit,
+                  capacity_change_duration=flags.capacity_change_duration,
+                  learning_rate=flags.learning_rate,
+                  n_channels=manager.n_channels
+    )
     
     sess.run(tf.global_variables_initializer())
     
