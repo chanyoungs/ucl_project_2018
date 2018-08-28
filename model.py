@@ -27,12 +27,14 @@ class MODEL(object):
   
   def __init__(self,
                model_type='beta_vae',
+               latent_size=20,
                gamma=100.0,
                capacity_limit=25.0,
                capacity_change_duration=100000,
                learning_rate=5e-4,
                n_channels=1):
     self.model_type = model_type
+    self.latent_size = latent_size
     self.gamma = gamma
     self.capacity_limit = capacity_limit
     self.capacity_change_duration = capacity_change_duration
@@ -135,8 +137,8 @@ class MODEL(object):
       W_conv4, b_conv4 = self._conv2d_weight_variable([4, 4, 32, 32], "conv4")
       W_fc1, b_fc1     = self._fc_weight_variable([4*4*32, 256], "fc1")
       W_fc2, b_fc2     = self._fc_weight_variable([256, 256], "fc2")
-      W_fc3, b_fc3     = self._fc_weight_variable([256, 10],  "fc3")
-      W_fc4, b_fc4     = self._fc_weight_variable([256, 10],  "fc4")
+      W_fc3, b_fc3     = self._fc_weight_variable([256, self.latent_size],  "fc3")
+      W_fc4, b_fc4     = self._fc_weight_variable([256, self.latent_size],  "fc4")
 
       x_reshaped = tf.reshape(x, [-1, 64, 64, self.n_channels])
       h_conv1 = tf.nn.relu(self._conv2d(x_reshaped, W_conv1, 2) + b_conv1) # (32, 32)
@@ -153,7 +155,7 @@ class MODEL(object):
   
   def _create_generator_network(self, z, reuse=False):
     with tf.variable_scope("gen", reuse=reuse) as scope:
-      W_fc1, b_fc1 = self._fc_weight_variable([10,  256],    "fc1")
+      W_fc1, b_fc1 = self._fc_weight_variable([self.latent_size,  256],    "fc1")
       W_fc2, b_fc2 = self._fc_weight_variable([256, 4*4*32], "fc2")
 
       # [filter_height, filter_width, output_channels, in_channels]

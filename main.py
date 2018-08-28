@@ -15,14 +15,23 @@ plt.switch_backend('agg')
 from scipy.stats import norm
 import sys
 
+
+model_summary = {}
+
 ############### Editable ##################
 model_type = 'beta_vae'
-# model_type = 'beta_vae'
+# model_type = 'vae'
+model_summary['model_type'] = model_type
 
+latent_size = 20
+model_summary['latent_size'] = latent_size
 ###########################################
 
 input_name = sys.argv[1]
+model_summary['data'] = input_name
+
 model_name = sys.argv[2]
+model_summary['model_name'] = model_name
 
 path = os.path.join('outputs', model_name)
 
@@ -57,9 +66,9 @@ if model_type == 'vae':
     tf.app.flags.DEFINE_integer("capacity_change_duration", 9999999999999,
                                 "encoding capacity change duration")
 elif model_type == 'beta_vae':
-    tf.app.flags.DEFINE_float("gamma", 100.0, "gamma param for latent loss")
-    tf.app.flags.DEFINE_float("capacity_limit", 20.0,
-                              "encoding capacity limit param for latent loss")
+    tf.app.flags.DEFINE_float("gamma", 200.0, "gamma param for latent loss") # default 100
+    tf.app.flags.DEFINE_float("capacity_limit", 40.0,
+                              "encoding capacity limit param for latent loss") # default 20
     tf.app.flags.DEFINE_integer("capacity_change_duration", 100000,
                                 "encoding capacity change duration")
 tf.app.flags.DEFINE_float("learning_rate", 5e-4, "learning rate")
@@ -70,6 +79,13 @@ tf.app.flags.DEFINE_string("log_file", "./outputs/{0}/log", "log file directory"
 tf.app.flags.DEFINE_boolean("training", True, "training or not")
 
 flags = tf.app.flags.FLAGS
+
+model_summary['gamma'] = flags.gamma
+model_summary['batch_size'] = flags.batch_size
+model_summary['capacity_limit'] = flags.capacity_limit
+model_summary['capacity_change_duration'] = flags.capacity_change_duration
+model_summary['learning_rate'] = flags.learning_rate
+np.save(os.path.join(path, 'figs_data', 'model_summary.npy'), model_summary)
 
 def train(sess, model, manager, saver):
 
@@ -168,25 +184,24 @@ def plot_figures(sess, model, images, manager, figs_data):
     z_mean, z_log_sigma_sq = model.transform(sess, batch_xs)
     z_sigma_sq = np.exp(z_log_sigma_sq)[0]
     
-    figs_data['latent_vars'].append(z_sigma_sq.reshape(10, 1))
-    figs_data['latent_means'].append(z_mean.reshape(10, 1))
+    figs_data['latent_vars'].append(z_sigma_sq.reshape(latent_size, 1))
+    figs_data['latent_means'].append(z_mean.reshape(latent_size, 1))
     
     latent_vars_graph = np.concatenate(figs_data['latent_vars'], axis=1)
     latent_means_graph = np.concatenate(figs_data['latent_means'], axis=1)
     
     # Save disentangled images
     z_m = z_mean[0]
-    n_z = 10
     
     ind = np.argsort(np.array(figs_data['latent_vars'][-1]).flatten())
     ind_inv = np.argsort(ind)
   
-    fig = plt.figure(figsize=(10,10), facecolor='grey')
-    for target_z_index in range(n_z):
-        for ri in range(n_z):
+    fig = plt.figure(figsize=(10,latent_size), facecolor='grey')
+    for target_z_index in range(latent_size):
+        for ri in range(10):
             value = -3.0 + (6.0 / 9.0) * ri
-            z_mean2 = np.zeros((1, n_z))
-            for i in range(n_z):
+            z_mean2 = np.zeros((1, latent_size))
+            for i in range(latent_size):
                 if( i == target_z_index ):
                     z_mean2[0][i] = value
                 else:
@@ -194,7 +209,7 @@ def plot_figures(sess, model, images, manager, figs_data):
             reconstr_img = model.generate(sess, z_mean2)
             rimg = reconstr_img[0].reshape(image_shape)
             
-            plt.subplot(n_z, n_z, ind_inv[target_z_index]*n_z + ri+1)
+            plt.subplot(latent_size, 10, ind_inv[target_z_index]*10 + ri+1)
             plt.imshow(rimg)
             plt.axis('off')
       
@@ -207,22 +222,22 @@ def plot_figures(sess, model, images, manager, figs_data):
 
     # Latent variances
     plt.subplot(321)
-    for v in range(n_z):
+    for v in range(latent_size):
         plt.plot(range(latent_vars_graph.shape[1]), latent_vars_graph[ind[v],:], label=v+1)
     plt.legend()
     plt.title('Latent variances Epoch: {0}'.format(epoch))
 
     # Latent means
     plt.subplot(322)
-    for v in range(n_z):
+    for v in range(latent_size):
         plt.plot(range(latent_means_graph.shape[1]), latent_means_graph[ind[v],:], label=v+1)
     plt.legend()
     plt.title('Latent means Epoch: {0}'.format(epoch))
 
     # Latent Gaussians
     plt.subplot(323)
-    x = np.linspace(np.min(latent_means_graph) - 3 * np.max(latent_vars_graph), np.max(latent_means_graph) + 3 * np.max(latent_vars_graph), 300)
-    for v in range(n_z):
+    x = np.linspace(np.min(latent_means_graph[:, -1]) - 3 * np.max(latent_vars_graph[:, -1]), np.max(latent_means_graph[:, -1]) + 3 * np.max(latent_vars_graph[:, -1]), 300)
+    for v in range(latent_size):
         plt.plot(x, norm.pdf(x, latent_means_graph[ind[v],-1], np.sqrt(latent_vars_graph[ind[v],-1])), label=v+1)
     plt.legend()
     plt.title('Latent Gaussians at Epoch: {0}'.format(epoch))
@@ -252,7 +267,7 @@ def plot_figures(sess, model, images, manager, figs_data):
     
     no_latents = int(np.max(latents_gt) + 1) # Number of original latents in the
     
-    votes = np.zeros((10, no_latents))
+    votes = np.zeros((latent_size, no_latents))
     # print('Counting votes...')
     for n in range(images_dis.shape[0]):
         batch_xs = images_dis[n]
@@ -264,7 +279,7 @@ def plot_figures(sess, model, images, manager, figs_data):
         
     # print('Calculating accuracy...')
     dis_met = 0
-    for n in range(10):
+    for n in range(latent_size):
         dis_met += np.max(votes[n])
         
     dis_met *= 100 / images_dis.shape[0]
@@ -300,6 +315,7 @@ def main(argv):
     sess = tf.Session()
     
     model = MODEL(model_type=model_type,
+                  latent_size=latent_size,
                   gamma=flags.gamma,
                   capacity_limit=flags.capacity_limit,
                   capacity_change_duration=flags.capacity_change_duration,
