@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# python main.py 3d_1col_2rot 3d_1col_2rot_bvae_lat20_b4 4 30
+# python main.py 3d_1col_2rot 3d_1col_2rot_bvae_lat20_b4 8 30
+# python main.py 2d_1col 2d_1col_bvae_lat20_b1 1 30
+# python main.py 2d_1col 2d_1col_bvae_lat20_b2 2 30
+# python main.py 2d_1col 2d_1col_bvae_lat20_b4 4 30
+# python main.py 2d_1col 2d_1col_bvae_lat20_b8 8 30
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b1 --epoch_size 30 --latent_size 20 --gamma 1
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b2 --epoch_size 30 --latent_size 20 --gamma 2
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b4 --epoch_size 30 --latent_size 20 --gamma 4
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b8 --epoch_size 30 --latent_size 20 --gamma 8
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b16 --epoch_size 30 --latent_size 20 --gamma 16
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b32 --epoch_size 30 --latent_size 20 --gamma 32
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b64 --epoch_size 30 --latent_size 20 --gamma 64
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat20_b128 --epoch_size 30 --latent_size 20 --gamma 128
+
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b1 --epoch_size 30 --latent_size 5 --gamma 1
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b2 --epoch_size 30 --latent_size 5 --gamma 2
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b4 --epoch_size 30 --latent_size 5 --gamma 4
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b8 --epoch_size 30 --latent_size 5 --gamma 8
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b16 --epoch_size 30 --latent_size 5 --gamma 16
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b32 --epoch_size 30 --latent_size 5 --gamma 32
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b64 --epoch_size 30 --latent_size 5 --gamma 64
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat5_b128 --epoch_size 30 --latent_size 5 --gamma 128
+
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b1 --epoch_size 30 --latent_size 10 --gamma 1
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b2 --epoch_size 30 --latent_size 10 --gamma 2
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b4 --epoch_size 30 --latent_size 10 --gamma 4
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b8 --epoch_size 30 --latent_size 10 --gamma 8
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b16 --epoch_size 30 --latent_size 10 --gamma 16
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b32 --epoch_size 30 --latent_size 10 --gamma 32
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b64 --epoch_size 30 --latent_size 10 --gamma 64
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat10_b128 --epoch_size 30 --latent_size 10 --gamma 128
+
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b1 --epoch_size 30 --latent_size 15 --gamma 1
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b2 --epoch_size 30 --latent_size 15 --gamma 2
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b4 --epoch_size 30 --latent_size 15 --gamma 4
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b8 --epoch_size 30 --latent_size 15 --gamma 8
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b16 --epoch_size 30 --latent_size 15 --gamma 16
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b32 --epoch_size 30 --latent_size 15 --gamma 32
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b64 --epoch_size 30 --latent_size 15 --gamma 64
+# python main.py --data 2d_bw --model_name 2d_bw_bvae_lat15_b128 --epoch_size 30 --latent_size 15 --gamma 128
+
+# python main.py --data 2dbw_pos --model_name 2dbw_pos_bvae_lat20_b1 --epoch_size 10 --latent_size 20 --gamma 1
+# python main.py --data 2dbw_pos --model_name 2dbw_pos_bvae_lat20_b2 --epoch_size 10 --latent_size 20 --gamma 2
+# python main.py --data 2dbw_pos --model_name 2dbw_pos_bvae_lat20_b4 --epoch_size 10 --latent_size 20 --gamma 4
+# python main.py --data 2dbw_pos --model_name 2dbw_pos_bvae_lat20_b8 --epoch_size 10 --latent_size 20 --gamma 8
+
+python main.py --data 2dbw_pos_scl --model_name 2dbw_pos_scl_bvae_lat20_b1 --epoch_size 20 --latent_size 20 --gamma 1
+python main.py --data 2dbw_pos_scl --model_name 2dbw_pos_scl_bvae_lat20_b2 --epoch_size 20 --latent_size 20 --gamma 2
+python main.py --data 2dbw_pos_scl --model_name 2dbw_pos_scl_bvae_lat20_b4 --epoch_size 20 --latent_size 20 --gamma 4
+python main.py --data 2dbw_pos_scl --model_name 2dbw_pos_scl_bvae_lat20_b8 --epoch_size 20 --latent_size 20 --gamma 8
+
+python main.py --data 2dbw_pos_scl_shp --model_name 2dbw_pos_scl_shp_bvae_lat20_b1 --epoch_size 30 --latent_size 20 --gamma 1
+python main.py --data 2dbw_pos_scl_shp --model_name 2dbw_pos_scl_shp_bvae_lat20_b2 --epoch_size 30 --latent_size 20 --gamma 2
+python main.py --data 2dbw_pos_scl_shp --model_name 2dbw_pos_scl_shp_bvae_lat20_b4 --epoch_size 30 --latent_size 20 --gamma 4
+python main.py --data 2dbw_pos_scl_shp --model_name 2dbw_pos_scl_shp_bvae_lat20_b8 --epoch_size 30 --latent_size 20 --gamma 8
+
+python main.py --data 3d_1col_2rot --model_name 3d_1col_2rot_bvae_lat20_b1 --epoch_size 60 --latent_size 20 --gamma 1
+python main.py --data 3d_1col_2rot --model_name 3d_1col_2rot_bvae_lat20_b2 --epoch_size 60 --latent_size 20 --gamma 2
+python main.py --data 3d_1col_2rot --model_name 3d_1col_2rot_bvae_lat20_b4 --epoch_size 60 --latent_size 20 --gamma 4
+python main.py --data 3d_1col_2rot --model_name 3d_1col_2rot_bvae_lat20_b8 --epoch_size 60 --latent_size 20 --gamma 8
+
+python main.py --data 2dbw_1pos --model_name 2dbw_1pos_bvae_lat20_b1 --epoch_size 10 --latent_size 20 --gamma 1
+python main.py --data 2dbw_1pos --model_name 2dbw_1pos_bvae_lat20_b2 --epoch_size 10 --latent_size 20 --gamma 2
+python main.py --data 2dbw_1pos --model_name 2dbw_1pos_bvae_lat20_b4 --epoch_size 10 --latent_size 20 --gamma 4
+python main.py --data 2dbw_1pos --model_name 2dbw_1pos_bvae_lat20_b8 --epoch_size 10 --latent_size 20 --gamma 8
+
+python main.py --data 2d_1col --model_name 2d_1col_bvae_lat20_b1 --epoch_size 60 --latent_size 20 --gamma 1
+python main.py --data 2d_1col --model_name 2d_1col_bvae_lat20_b2 --epoch_size 60 --latent_size 20 --gamma 2
+python main.py --data 2d_1col --model_name 2d_1col_bvae_lat20_b4 --epoch_size 60 --latent_size 20 --gamma 4
+python main.py --data 2d_1col --model_name 2d_1col_bvae_lat20_b8 --epoch_size 60 --latent_size 20 --gamma 8
+
+python main.py --data 3d_1col_2rot --model_name 3d_1col_2rot_bvae_lat20_b1 --epoch_size 60 --latent_size 20 --gamma 1
+python main.py --data 3d_1col_2rot --model_name 3d_1col_2rot_bvae_lat20_b4 --epoch_size 60 --latent_size 20 --gamma 4
+

@@ -26,14 +26,12 @@ class MODEL(object):
   """ Beta Variational Auto Encoder. """
   
   def __init__(self,
-               model_type='beta_vae',
                latent_size=20,
                gamma=100.0,
                capacity_limit=25.0,
                capacity_change_duration=100000,
                learning_rate=5e-4,
                n_channels=1):
-    self.model_type = model_type
     self.latent_size = latent_size
     self.gamma = gamma
     self.capacity_limit = capacity_limit
@@ -207,10 +205,7 @@ class MODEL(object):
     self.capacity = tf.placeholder(tf.float32, shape=[])
     
     # Loss with encoding capacity term
-    if self.model_type == 'beta_vae':
-      self.latent_loss_weighted = self.gamma * tf.abs(self.latent_loss - self.capacity)
-    elif self.model_type == 'vae':
-      self.latent_loss_weighted = tf.abs(self.latent_loss)
+    self.latent_loss_weighted = self.gamma * tf.abs(self.latent_loss - self.capacity)
 
     self.loss = self.reconstr_loss + self.latent_loss_weighted
 
